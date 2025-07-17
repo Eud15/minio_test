@@ -1,0 +1,458 @@
+<!-- templates/file_manager/home.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinIO Test - Accueil</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .stat-card {
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+            <div class="navbar-nav">
+                <span class="nav-link" id="minioStatus">
+                    <i class="fas fa-circle text-warning"></i> MinIO
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- En-tête -->
+        <div class="row">
+            <div class="col-md-12 text-center mb-4">
+                <h1 class="mb-3">
+                    <i class="fas fa-cloud-upload-alt text-primary"></i>
+                    Test MinIO avec Django
+                </h1>
+                <p class="lead">Interface de test pour l'intégration Django-MinIO</p>
+            </div>
+        </div>
+
+        <!-- Statistiques principales -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card stat-card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Documents</h5>
+                        <div class="stat-number text-primary">{{ documents_count }}</div>
+                        <p class="card-text">fichiers uploadés</p>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'file_manager:upload_document' %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-upload"></i> Upload
+                            </a>
+                            <a href="{% url 'file_manager:list_documents' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-list"></i> Voir tout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card stat-card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-images fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Images</h5>
+                        <div class="stat-number text-success">{{ images_count }}</div>
+                        <p class="card-text">images uploadées</p>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'file_manager:upload_image' %}" class="btn btn-success btn-sm">
+                                <i class="fas fa-upload"></i> Upload
+                            </a>
+                            <a href="{% url 'file_manager:list_images' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-list"></i> Voir tout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card stat-card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">Tests</h5>
+                        <div class="stat-number text-warning">{{ test_files_count }}</div>
+                        <p class="card-text">fichiers de test</p>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'file_manager:quick_test' %}" class="btn btn-warning btn-sm">
+                                <i class="fas fa-bolt"></i> Test
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fichiers récents -->
+        <div class="row">
+            <!-- Documents récents -->
+            {% if recent_documents %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-file-alt text-primary"></i> Documents récents</h5>
+                        <a href="{% url 'file_manager:list_documents' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+                    </div>
+                    <div class="card-body">
+                        {% for doc in recent_documents %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                            <div>
+                                <strong>{{ doc.title }}</strong><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ doc.uploaded_at|date:"d/m/Y H:i" }}
+                                    | {{ doc.get_file_size_display }}
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ doc.id }}', 'document')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Images récentes -->
+            {% if recent_images %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-images text-success"></i> Images récentes</h5>
+                        <a href="{% url 'file_manager:list_images' %}" class="btn btn-sm btn-outline-success">Voir tout</a>
+                    </div>
+                    <div class="card-body">
+                        {% for img in recent_images %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                            <div>
+                                <strong>{{ img.name }}</strong><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ img.uploaded_at|date:"d/m/Y H:i" }}
+                                    | {{ img.get_file_size_display }} | {{ img.get_dimensions_display }}
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-success" onclick="viewFile('{{ img.id }}', 'image')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-rocket"></i> Actions rapides</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <a href="{% url 'file_manager:upload_document' %}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-file-upload d-block mb-2" style="font-size: 2rem;"></i>
+                                    Upload Document
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="{% url 'file_manager:upload_image' %}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-image d-block mb-2" style="font-size: 2rem;"></i>
+                                    Upload Image
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="{% url 'file_manager:quick_test' %}" class="btn btn-warning btn-lg w-100">
+                                    <i class="fas fa-bolt d-block mb-2" style="font-size: 2rem;"></i>
+                                    Test Rapide
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="http://localhost:9001" target="_blank" class="btn btn-secondary btn-lg w-100">
+                                    <i class="fas fa-external-link-alt d-block mb-2" style="font-size: 2rem;"></i>
+                                    Console MinIO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone de diagnostic -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-info-circle"></i> Statut du système</h5>
+                        <button class="btn btn-info btn-sm" onclick="refreshStats()">
+                            <i class="fas fa-sync"></i> Actualiser
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="systemStatus">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </div>
+                                <p class="mt-2">Vérification du statut...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Vérifier le statut MinIO au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            checkMinioStatus();
+            refreshStats();
+        });
+
+        async function checkMinioStatus() {
+            try {
+                const response = await fetch('{% url "file_manager:minio_status" %}');
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('minioStatus');
+                if (data.success && data.minio_connected) {
+                    statusElement.innerHTML = '<i class="fas fa-circle text-success"></i> MinIO OK';
+                    statusElement.title = `Connecté | Bucket: ${data.bucket_name} | Objets: ${data.minio_object_count}`;
+                } else {
+                    statusElement.innerHTML = '<i class="fas fa-circle text-danger"></i> MinIO Error';
+                    statusElement.title = data.error || 'Erreur de connexion MinIO';
+                }
+            } catch (error) {
+                const statusElement = document.getElementById('minioStatus');
+                statusElement.innerHTML = '<i class="fas fa-circle text-danger"></i> MinIO Error';
+                statusElement.title = 'Impossible de vérifier le statut MinIO';
+            }
+        }
+
+        async function refreshStats() {
+            const statusDiv = document.getElementById('systemStatus');
+            
+            try {
+                const [minioResponse, statsResponse] = await Promise.all([
+                    fetch('{% url "file_manager:minio_status" %}'),
+                    fetch('{% url "file_manager:file_stats" %}')
+                ]);
+                
+                const minioData = await minioResponse.json();
+                const statsData = await statsResponse.json();
+                
+                let statusHtml = '<div class="row">';
+                
+                // Statut MinIO
+                statusHtml += '<div class="col-md-6">';
+                statusHtml += '<h6><i class="fas fa-server"></i> MinIO</h6>';
+                if (minioData.success) {
+                    statusHtml += `
+                        <p class="text-success mb-1"> Connexion OK</p>
+                        <p class="small mb-1">Bucket: ${minioData.bucket_name}</p>
+                        <p class="small mb-1">Objets: ${minioData.minio_object_count}</p>
+                        <p class="small mb-0">Taille: ${formatBytes(minioData.minio_total_size || 0)}</p>
+                    `;
+                } else {
+                    statusHtml += `<p class="text-danger"> ${minioData.error}</p>`;
+                }
+                statusHtml += '</div>';
+                
+                // Statistiques base de données
+                statusHtml += '<div class="col-md-6">';
+                statusHtml += '<h6><i class="fas fa-database"></i> Base de données</h6>';
+                if (statsData.success) {
+                    const stats = statsData.stats;
+                    statusHtml += `
+                        <p class="small mb-1">Documents: ${stats.documents.count} (${formatBytes(stats.documents.total_size)})</p>
+                        <p class="small mb-1">Images: ${stats.images.count} (${formatBytes(stats.images.total_size)})</p>
+                        <p class="small mb-0">Tests: ${stats.test_files.count} (${formatBytes(stats.test_files.total_size)})</p>
+                    `;
+                } else {
+                    statusHtml += `<p class="text-warning">⚠️ Erreur base de données</p>`;
+                }
+                statusHtml += '</div>';
+                statusHtml += '</div>';
+                
+                statusDiv.innerHTML = statusHtml;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        Erreur lors du chargement des statistiques: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function viewFile(id, type) {
+            // Ici vous pouvez ajouter la logique pour voir le fichier
+            alert(`Voir ${type} ID: ${id} (fonctionnalité à implémenter)`);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html><!-- templates/file_manager/home.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinIO Test - Accueil</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <h1 class="mb-4">
+                    <i class="fas fa-cloud-upload-alt text-primary"></i>
+                    Test MinIO avec Django
+                </h1>
+                <p class="lead mb-5">Interface de test pour l'intégration Django-MinIO</p>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-upload fa-3x text-primary mb-3"></i>
+                                <h5>Upload Document</h5>
+                                <p class="card-text">Téléchargez vos documents vers MinIO</p>
+                                <a href="/upload/document/" class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Uploader
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                                <h5>Test Rapide</h5>
+                                <p class="card-text">Test rapide d'upload vers MinIO</p>
+                                <a href="/test/" class="btn btn-warning">
+                                    <i class="fas fa-bolt"></i> Tester
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-cog fa-3x text-secondary mb-3"></i>
+                                <h5>Console MinIO</h5>
+                                <p class="card-text">Interface d'administration MinIO</p>
+                                <a href="http://localhost:9001" target="_blank" class="btn btn-secondary">
+                                    <i class="fas fa-external-link-alt"></i> Ouvrir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test de statut MinIO -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5> Statut MinIO</h5>
+                                <button class="btn btn-info" onclick="checkMinioStatus()">
+                                    <i class="fas fa-heartbeat"></i> Vérifier la connexion
+                                </button>
+                                <div id="statusResult" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkMinioStatus() {
+            const resultDiv = document.getElementById('statusResult');
+            resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Vérification...';
+            
+            try {
+                const response = await fetch('/api/minio-status/');
+                const data = await response.json();
+                
+                if (data.success && data.minio_connected) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6> MinIO fonctionne correctement!</h6>
+                            <p class="mb-0">Connexion établie avec succès</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6> Problème avec MinIO</h6>
+                            <p class="mb-0">${data.error || 'Erreur de connexion'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6> Erreur de réseau</h6>
+                        <p class="mb-0">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

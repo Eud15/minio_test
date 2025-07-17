@@ -1,0 +1,313 @@
+<!-- templates/file_manager/upload_document.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Document - MinIO Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #0d6efd;
+            background-color: #e3f2fd;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/">Accueil</a>
+                <a class="nav-link" href="/test/">Test Rapide</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-file-upload"></i> Upload de Document</h4>
+                        <p class="mb-0 text-muted">Téléchargez vos documents vers MinIO</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- Zone de drag & drop -->
+                            <div class="upload-area mb-4" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5>Glissez-déposez votre document ici</h5>
+                                <p class="text-muted">ou cliquez pour sélectionner un fichier</p>
+                                <input type="file" class="form-control" id="file" name="file" style="display: none;" required accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('file').click()">
+                                    <i class="fas fa-folder-open"></i> Choisir un fichier
+                                </button>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">
+                                            <i class="fas fa-heading"></i> Titre du document *
+                                        </label>
+                                        <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Rapport mensuel">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-file"></i> Fichier sélectionné
+                                        </label>
+                                        <div id="selectedFile" class="form-control bg-light">
+                                            Aucun fichier sélectionné
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    <i class="fas fa-align-left"></i> Description (optionnel)
+                                </label>
+                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Description du document..."></textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                    <i class="fas fa-upload"></i> Uploader vers MinIO
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="uploadResult" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Informations</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>📁 Types de fichiers acceptés :</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-file-pdf text-danger"></i> PDF</li>
+                            <li><i class="fas fa-file-word text-primary"></i> Word (.doc, .docx)</li>
+                            <li><i class="fas fa-file-excel text-success"></i> Excel (.xls, .xlsx)</li>
+                            <li><i class="fas fa-file-powerpoint text-warning"></i> PowerPoint (.ppt, .pptx)</li>
+                            <li><i class="fas fa-file-alt"></i> Texte (.txt)</li>
+                        </ul>
+                        
+                        <hr>
+                        
+                        <h6>⚙️ Configuration MinIO :</h6>
+                        <p class="small mb-1"><strong>Bucket :</strong> django-test</p>
+                        <p class="small mb-1"><strong>Endpoint :</strong> localhost:9000</p>
+                        <p class="small mb-0"><strong>Storage :</strong> S3 Compatible</p>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-link"></i> Liens utiles</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-home"></i> Accueil
+                            </a>
+                            <a href="/test/" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-bolt"></i> Test Rapide
+                            </a>
+                            <a href="http://localhost:9001" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-external-link-alt"></i> Console MinIO
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let selectedFile = null;
+        
+        // Elements DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('file');
+        const titleInput = document.getElementById('title');
+        const submitBtn = document.getElementById('submitBtn');
+        const selectedFileDiv = document.getElementById('selectedFile');
+        
+        // Gestion du drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                selectedFile = file;
+                selectedFileDiv.textContent = `${file.name} (${formatFileSize(file.size)})`;
+                
+                // Auto-remplir le titre si vide
+                if (!titleInput.value) {
+                    const fileName = file.name.split('.')[0];
+                    titleInput.value = fileName;
+                }
+                
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-secondary');
+                submitBtn.classList.add('btn-primary');
+            }
+        }
+        
+        // Gestion du formulaire
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!selectedFile) {
+                alert('Veuillez sélectionner un fichier');
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('uploadResult');
+            
+            // Afficher le loader
+            resultDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2"></div>
+                        <div>
+                            <strong>Upload en cours...</strong><br>
+                            <small>Envoi vers MinIO : ${selectedFile.name} (${formatFileSize(selectedFile.size)})</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/upload/document/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Document uploadé avec succès !</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Document :</strong> ${data.document_id ? '#' + data.document_id : 'N/A'}</p>
+                                    <p><strong>Taille :</strong> ${data.file_size || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>URL MinIO :</strong></p>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" value="${data.file_url || ''}" readonly>
+                                        <button class="btn btn-outline-secondary" onclick="copyUrl('${data.file_url || ''}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                ${data.file_url ? `<a href="${data.file_url}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt"></i> Ouvrir le document</a>` : ''}
+                                <button class="btn btn-sm btn-success" onclick="location.reload()">
+                                    <i class="fas fa-sync"></i> Nouveau document
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    this.reset();
+                    selectedFile = null;
+                    selectedFileDiv.textContent = 'Aucun fichier sélectionné';
+                    submitBtn.disabled = true;
+                    
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Erreur d'upload</h6>
+                            <p>${data.error || 'Erreur inconnue'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Erreur réseau</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Fonctions utilitaires
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copiée dans le presse-papiers !');
+            });
+        }
+    </script>
+</body>
+</html>

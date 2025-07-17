@@ -1,0 +1,257 @@
+<!-- templates/file_manager/list_images.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Images - MinIO Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .image-card {
+            transition: transform 0.2s;
+        }
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .image-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px 8px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/">Accueil</a>
+                <a class="nav-link" href="{% url 'file_manager:upload_image' %}">Upload Image</a>
+                <a class="nav-link" href="{% url 'file_manager:list_documents' %}">Documents</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-images text-success"></i> Images ({{ images.count }})</h2>
+            <a href="{% url 'file_manager:upload_image' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Nouvelle image
+            </a>
+        </div>
+
+        {% if images %}
+            <div class="row">
+                {% for image in images %}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                    <div class="card image-card h-100">
+                        <div class="position-relative">
+                            <img src="{{ image.get_presigned_url }}" class="image-thumbnail" alt="{{ image.name }}" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGVlMmU2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZjNzU3ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vbiBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg=='">
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-dark bg-opacity-75">
+                                    {{ image.get_file_size_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-title">{{ image.name }}</h6>
+                            {% if image.description %}
+                                <p class="card-text small">{{ image.description|truncatewords:10 }}</p>
+                            {% endif %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ image.uploaded_at|date:"d/m/Y H:i" }}<br>
+                                    <i class="fas fa-expand-arrows-alt"></i> {{ image.get_dimensions_display }}<br>
+                                    <i class="fas fa-file"></i> {{ image.original_filename }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-outline-success btn-sm" onclick="viewImage({{ image.id }}, '{{ image.name }}', '{{ image.get_presigned_url }}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="copyUrl('{{ image.get_presigned_url }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteImage({{ image.id }}, '{{ image.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Navigation des images">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">Première</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Précédente</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Suivante</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Dernière</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-images fa-5x text-muted mb-3"></i>
+                <h4>Aucune image</h4>
+                <p class="text-muted">Vous n'avez encore uploadé aucune image.</p>
+                <a href="{% url 'file_manager:upload_image' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Uploader votre première image
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal pour voir l'image en grand -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalTitle">Aperçu de l'image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" class="img-fluid" alt="Image en grand">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="downloadImageBtn">
+                        <i class="fas fa-download"></i> Télécharger
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function viewImage(id, name, url) {
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            const modalTitle = document.getElementById('imageModalTitle');
+            const modalImage = document.getElementById('modalImage');
+            const downloadBtn = document.getElementById('downloadImageBtn');
+            
+            modalTitle.textContent = name;
+            modalImage.src = url;
+            downloadBtn.onclick = () => window.open(url, '_blank');
+            
+            modal.show();
+        }
+
+        function copyUrl(url) {
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('URL copiée dans le presse-papiers !', 'success');
+                }).catch(() => {
+                    prompt('Copiez cette URL:', url);
+                });
+            } else {
+                showToast('URL non disponible', 'warning');
+            }
+        }
+
+        async function deleteImage(id, name) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer l'image "${name}" ?`)) {
+                try {
+                    const response = await fetch(`/delete/image/${id}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast('Erreur: ' + data.error, 'danger');
+                    }
+                } catch (error) {
+                    showToast('Erreur: ' + error.message, 'danger');
+                }
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            // Créer un toast Bootstrap
+            const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+            
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Nettoyer après fermeture
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

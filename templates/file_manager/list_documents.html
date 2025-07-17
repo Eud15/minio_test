@@ -1,0 +1,180 @@
+<!-- templates/file_manager/list_documents.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents - MinIO Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/">Accueil</a>
+                <a class="nav-link" href="{% url 'file_manager:upload_document' %}">Upload Document</a>
+                <a class="nav-link" href="{% url 'file_manager:list_images' %}">Images</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-file-alt text-primary"></i> Documents ({{ documents.count }})</h2>
+            <a href="{% url 'file_manager:upload_document' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouveau document
+            </a>
+        </div>
+
+        {% if documents %}
+            <div class="row">
+                {% for document in documents %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ document.title }}</h5>
+                            {% if document.description %}
+                                <p class="card-text">{{ document.description|truncatewords:15 }}</p>
+                            {% endif %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ document.uploaded_at|date:"d/m/Y H:i" }}<br>
+                                    <i class="fas fa-weight"></i> {{ document.get_file_size_display }}<br>
+                                    <i class="fas fa-file"></i> {{ document.original_filename }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="viewDocument({{ document.id }})">
+                                    <i class="fas fa-eye"></i> Voir
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="copyUrl('{{ document.get_presigned_url }}')">
+                                    <i class="fas fa-copy"></i> URL
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteDocument({{ document.id }}, '{{ document.title }}')">
+                                    <i class="fas fa-trash"></i> Suppr.
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Navigation des documents">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">Première</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Précédente</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Suivante</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Dernière</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-file-alt fa-5x text-muted mb-3"></i>
+                <h4>Aucun document</h4>
+                <p class="text-muted">Vous n'avez encore uploadé aucun document.</p>
+                <a href="{% url 'file_manager:upload_document' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Uploader votre premier document
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        async function viewDocument(id) {
+            try {
+                // Obtenir l'URL pré-signée et ouvrir le document
+                const response = await fetch(`/api/document/${id}/presigned-url/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Erreur lors de l\'ouverture du document');
+                }
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        function copyUrl(url) {
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('URL copiée dans le presse-papiers !');
+                }).catch(() => {
+                    prompt('Copiez cette URL:', url);
+                });
+            } else {
+                alert('URL non disponible');
+            }
+        }
+
+        async function deleteDocument(id, title) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${title}" ?`)) {
+                try {
+                    const response = await fetch(`/delete/document/${id}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || getCookie('csrftoken'),
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                }
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

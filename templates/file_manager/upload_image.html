@@ -1,0 +1,362 @@
+<!-- templates/file_manager/upload_image.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image - MinIO Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #0d6efd;
+            background-color: #e3f2fd;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-upload-alt"></i> MinIO Test
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/">Accueil</a>
+                <a class="nav-link" href="{% url 'file_manager:upload_document' %}">Documents</a>
+                <a class="nav-link" href="{% url 'file_manager:quick_test' %}">Test Rapide</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-image"></i> Upload d'Image</h4>
+                        <p class="mb-0 text-muted">Téléchargez vos images vers MinIO</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- Zone de drag & drop -->
+                            <div class="upload-area mb-4" id="uploadArea">
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <h5>Glissez-déposez votre image ici</h5>
+                                <p class="text-muted">ou cliquez pour sélectionner une image</p>
+                                <input type="file" class="form-control" id="image" name="image" style="display: none;" required accept="image/*">
+                                <button type="button" class="btn btn-outline-success" onclick="document.getElementById('image').click()">
+                                    <i class="fas fa-folder-open"></i> Choisir une image
+                                </button>
+                            </div>
+                            
+                            <!-- Aperçu de l'image -->
+                            <div id="imagePreview" class="text-center mb-4" style="display: none;">
+                                <img id="previewImg" class="image-preview" alt="Aperçu">
+                                <p class="mt-2 text-muted" id="imageInfo"></p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">
+                                            <i class="fas fa-heading"></i> Nom de l'image *
+                                        </label>
+                                        <input type="text" class="form-control" id="name" name="name" required placeholder="Ex: Photo vacances">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-file"></i> Fichier sélectionné
+                                        </label>
+                                        <div id="selectedFile" class="form-control bg-light">
+                                            Aucune image sélectionnée
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    <i class="fas fa-align-left"></i> Description (optionnel)
+                                </label>
+                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Description de l'image..."></textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                                    <i class="fas fa-upload"></i> Uploader vers MinIO
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="uploadResult" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Informations</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>🖼️ Types d'images acceptés :</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-image text-primary"></i> JPEG (.jpg, .jpeg)</li>
+                            <li><i class="fas fa-image text-success"></i> PNG (.png)</li>
+                            <li><i class="fas fa-image text-info"></i> GIF (.gif)</li>
+                            <li><i class="fas fa-image text-warning"></i> WebP (.webp)</li>
+                        </ul>
+                        
+                        <hr>
+                        
+                        <h6>📊 Fonctionnalités :</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Aperçu en temps réel</li>
+                            <li><i class="fas fa-check text-success"></i> Détection automatique des dimensions</li>
+                            <li><i class="fas fa-check text-success"></i> Stockage sécurisé dans MinIO</li>
+                            <li><i class="fas fa-check text-success"></i> URLs d'accès pré-signées</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-link"></i> Liens utiles</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-home"></i> Accueil
+                            </a>
+                            <a href="{% url 'file_manager:list_images' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-list"></i> Voir toutes les images
+                            </a>
+                            <a href="http://localhost:9001" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-external-link-alt"></i> Console MinIO
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let selectedFile = null;
+        
+        // Elements DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('image');
+        const nameInput = document.getElementById('name');
+        const submitBtn = document.getElementById('submitBtn');
+        const selectedFileDiv = document.getElementById('selectedFile');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const imageInfo = document.getElementById('imageInfo');
+        
+        // Gestion du drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                imageInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        uploadArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+        
+        imageInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = imageInput.files[0];
+            if (file && file.type.startsWith('image/')) {
+                selectedFile = file;
+                selectedFileDiv.textContent = `${file.name} (${formatFileSize(file.size)})`;
+                
+                // Auto-remplir le nom si vide
+                if (!nameInput.value) {
+                    const fileName = file.name.split('.')[0];
+                    nameInput.value = fileName;
+                }
+                
+                // Afficher l'aperçu
+                showImagePreview(file);
+                
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-secondary');
+                submitBtn.classList.add('btn-success');
+            }
+        }
+        
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.style.display = 'block';
+                
+                // Obtenir les dimensions de l'image
+                const img = new Image();
+                img.onload = function() {
+                    imageInfo.textContent = `${img.width} x ${img.height} pixels - ${formatFileSize(file.size)}`;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Gestion du formulaire
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!selectedFile) {
+                alert('Veuillez sélectionner une image');
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('uploadResult');
+            
+            // Afficher le loader
+            resultDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2"></div>
+                        <div>
+                            <strong>Upload en cours...</strong><br>
+                            <small>Envoi vers MinIO : ${selectedFile.name} (${formatFileSize(selectedFile.size)})</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/upload/image/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Image uploadée avec succès !</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Image :</strong> ${data.image_id ? '#' + data.image_id : 'N/A'}</p>
+                                    <p><strong>Taille :</strong> ${data.file_size || 'N/A'}</p>
+                                    <p><strong>Dimensions :</strong> ${data.dimensions || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Fichier original :</strong> ${data.original_filename || 'N/A'}</p>
+                                    <p><strong>URL MinIO :</strong></p>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" value="${data.file_url || ''}" readonly>
+                                        <button class="btn btn-outline-secondary" onclick="copyUrl('${data.file_url || ''}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                ${data.file_url ? `<a href="${data.file_url}" target="_blank" class="btn btn-sm btn-success"><i class="fas fa-external-link-alt"></i> Voir l'image</a>` : ''}
+                                <a href="/images/" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-list"></i> Voir toutes les images
+                                </a>
+                                <button class="btn btn-sm btn-primary" onclick="location.reload()">
+                                    <i class="fas fa-sync"></i> Nouvelle image
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    this.reset();
+                    selectedFile = null;
+                    selectedFileDiv.textContent = 'Aucune image sélectionnée';
+                    imagePreview.style.display = 'none';
+                    submitBtn.disabled = true;
+                    
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Erreur d'upload</h6>
+                            <p>${data.error || 'Erreur inconnue'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Erreur réseau</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Fonctions utilitaires
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function copyUrl(url) {
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('URL copiée dans le presse-papiers !');
+                }).catch(() => {
+                    prompt('Copiez cette URL:', url);
+                });
+            } else {
+                alert('URL non disponible');
+            }
+        }
+    </script>
+</body>
+</html>
